@@ -83,7 +83,7 @@
                 <h1 class="font-orbitron font-black text-xl md:text-2xl tracking-wider text-emerald-400">
                     SCFHS TRIAGE MATRIX <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300">PRO v4.0</span>
                 </h1>
-                <p class="text-xs text-slate-400 font-mono tracking-wide">Clinical Decision Support & Assessment Framework</p>
+                <p class="text-xs text-slate-400 font-mono tracking-wide">Clinical Decision Support & Case-Based Assessment Framework</p>
             </div>
         </div>
 
@@ -114,7 +114,7 @@
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
                     TACTICAL SECTOR NODES
                 </div>
-                <div class="text-xs text-slate-400 font-mono">50 Operations</div>
+                <div class="text-xs text-slate-400 font-mono">50 Clinical Cases</div>
             </div>
 
             <!-- STATUS LEGEND -->
@@ -137,9 +137,12 @@
             <!-- TELEMETRY / VITAL SIGNS HUD -->
             <div class="hud-card p-5 rounded-xl border-emerald-500/30">
                 <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
-                    <span id="node-title-display" class="font-orbitron font-bold text-emerald-400 text-lg">
-                        NODE #01 — Emergency Care
-                    </span>
+                    <div>
+                        <span id="node-code-display" class="text-xs font-mono text-emerald-500 block">NODE #01</span>
+                        <span id="node-title-display" class="font-orbitron font-bold text-emerald-400 text-lg">
+                            Anaphylactic Shock
+                        </span>
+                    </div>
                     <span id="node-status-badge" class="px-2 py-0.5 rounded text-xs font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                         ACTIVE
                     </span>
@@ -147,9 +150,9 @@
 
                 <!-- CLINICAL SCENARIO -->
                 <div class="mb-4">
-                    <div class="text-[11px] text-slate-400 mb-1 tracking-wide font-mono">CLINICAL PRESENTATION & SCENARIO</div>
+                    <div class="text-[11px] text-slate-400 mb-1 tracking-wide font-mono">CLINICAL PRESENTATION & VITAL SIGNS</div>
                     <p id="clinical-presentation" class="text-sm text-slate-200 leading-relaxed bg-slate-900/60 p-3 rounded-lg border border-slate-800/80">
-                        Loading clinical telemetry parameters...
+                        Loading clinical presentation parameters...
                     </p>
                 </div>
 
@@ -216,57 +219,105 @@
 
     <!-- JS ENGINE -->
     <script>
-        // GENERATE DATASET FOR ALL 50 NODES
-        const categories = ["Emergency Care", "Cardiovascular", "Respiratory", "Neurology", "Pediatrics", "Critical Care", "Pharmacology", "Obstetrics"];
-        
-        const generateNodes = () => {
-            const list = [];
-            for (let i = 1; i <= 50; i++) {
-                const cat = categories[(i - 1) % categories.length];
-                list.push({
-                    id: i - 1,
-                    code: `NODE #${String(i).padStart(2, '0')}`,
-                    title: `${cat} Module ${Math.ceil(i / 8)}`,
-                    category: cat,
-                    status: i === 1 ? 'active' : 'locked', // Node #1 active initially
-                    presentation: `Patient presenting in ${cat} sector with acute clinical deterioration. Triage matrix protocol required for immediate stabilization.`,
-                    vitals: {
-                        BP: `${100 + (i * 2) % 40}/${60 + (i % 20)} mmHg`,
-                        HR: `${70 + (i * 3) % 50} bpm`,
-                        SpO2: `${90 + (i % 9)}%`,
-                        Temp: `${36.5 + (i % 3) * 0.5} °C`
-                    },
-                    protocols: [
-                        { id: 'p1', label: 'High-Flow Oxygen & Airway Positioning', correct: true },
-                        { id: 'p2', label: 'Immediate Fluid Bolus 500mL NS', correct: false },
-                        { id: 'p3', label: 'Observation & Serial Monitoring', correct: false }
-                    ],
-                    medications: [
-                        { id: 'm1', label: 'Epinephrine 1:10,000 IV/IO', correct: true },
-                        { id: 'm2', label: 'Amiodarone 300mg Bolus', correct: false },
-                        { id: 'm3', label: 'Atropine Sulfate 1mg IV', correct: false }
-                    ],
-                    dosages: [
-                        { id: 'd1', label: '1 mg IV Push every 3-5 minutes', correct: true },
-                        { id: 'd2', label: '150 mg IV Infusion over 10 mins', correct: false },
-                        { id: 'd3', label: '0.5 mg IV Rapid Bolus', correct: false }
-                    ]
-                });
-            }
-            return list;
-        };
+        // SPECIFIC 50 CLINICAL CASE DEFINITIONS
+        const caseDatabase = [
+            { title: "Anaphylactic Shock", BP: "82/48 mmHg", HR: "135 bpm", SpO2: "88%", Temp: "37.2 °C", presentation: "Patient presents with severe dyspnea, generalized urticaria, and laryngeal edema following IV antibiotic administration.", protocol: "Secure Airway & High-Flow Oxygen", drug: "Epinephrine (1:1,000)", dose: "0.3 - 0.5 mg IM Outer Thigh" },
+            { title: "Acute Myocardial Infarction", BP: "165/98 mmHg", HR: "110 bpm", SpO2: "94%", Temp: "36.8 °C", presentation: "Crushing substernal chest pain radiating to the left jaw and neck, accompanied by diaphoresis and ST-elevation in leads II, III, aVF.", protocol: "12-Lead ECG & Coronary Protocol", drug: "Sublingual Nitroglycerin", dose: "0.4 mg SL every 5 mins (Max 3 doses)" },
+            { title: "Hypertensive Crisis", BP: "220/125 mmHg", HR: "98 bpm", SpO2: "97%", Temp: "36.6 °C", presentation: "Severe occipital headache, blurred vision, and papilledema without signs of acute cardiac or renal target organ failure.", protocol: "Quiet Room & Continuous BP Monitoring", drug: "Labetalol IV", dose: "20 mg IV slow push over 2 mins" },
+            { title: "Severe Asthma Exacerbation", BP: "138/85 mmHg", HR: "124 bpm", SpO2: "89%", Temp: "37.0 °C", presentation: "Inability to complete sentences, silent chest on auscultation, intercostal retractions, and peak expiratory flow < 50%.", protocol: "Upright Positioning & Continuous Nebulization", drug: "Albuterol + Ipratropium", dose: "2.5 mg Nebulized every 20 mins" },
+            { title: "Diabetic Ketoacidosis (DKA)", BP: "95/60 mmHg", HR: "128 bpm", SpO2: "98%", Temp: "38.1 °C", presentation: "Kussmaul breathing, fruity breath odor, lethargy, blood glucose 480 mg/dL, and positive serum ketones.", protocol: "Isotonic Fluid Resuscitation (0.9% NS)", drug: "Regular Insulin", dose: "0.1 units/kg/hr IV Continuous Infusion" },
+            { title: "Acute Ischemic Stroke", BP: "185/105 mmHg", HR: "82 bpm", SpO2: "96%", Temp: "36.7 °C", presentation: "Sudden onset right-sided hemiparesis and expressive aphasia. Last known well time: 90 minutes ago.", protocol: "Immediate Non-Contrast Head CT", drug: "Alteplase (tPA)", dose: "0.9 mg/kg IV (10% bolus over 1 min)" },
+            { title: "Septic Shock", BP: "78/42 mmHg", HR: "142 bpm", SpO2: "91%", Temp: "39.4 °C", presentation: "Refractory hypotension following 30 mL/kg fluid resuscitation, elevated lactate > 4 mmol/L, altered mental state.", protocol: "Blood Cultures x2 & Hemodynamic Support", drug: "Norepinephrine", dose: "0.02 - 0.2 mcg/kg/min IV Infusion" },
+            { title: "Opioid Overdose Toxicity", BP: "90/55 mmHg", HR: "52 bpm", SpO2: "82%", Temp: "35.8 °C", presentation: "Unresponsive patient with pinpoint pupils, shallow respirations at 6/min, and peripheral cyanosis.", protocol: "Bag-Valve-Mask Ventilation", drug: "Naloxone HCl", dose: "0.4 mg - 2.0 mg IV/IM/IN" },
+            { title: "Tension Pneumothorax", BP: "70/40 mmHg", HR: "148 bpm", SpO2: "80%", Temp: "36.5 °C", presentation: "Tracheal deviation to the right, absent breath sounds on the left, distended neck veins, and severe respiratory distress.", protocol: "Immediate Needle Decompression (2nd ICS)", drug: "Oxygen (100% Non-Rebreather)", dose: "15 L/min High Flow" },
+            { title: "Acute Pulmonary Edema", BP: "190/110 mmHg", HR: "118 bpm", SpO2: "84%", Temp: "36.9 °C", presentation: "Severe orthopnea, pink frothy sputum, bilateral diffuse crackles, and severe peripheral cyanosis.", protocol: "High-Fowler Position & Non-Invasive Ventilation", drug: "Furosemide", dose: "40 - 80 mg IV Push over 2 mins" },
+            { title: "Hyperkalemia with Cardiac Toxicity", BP: "110/70 mmHg", HR: "48 bpm", SpO2: "95%", Temp: "36.6 °C", presentation: "Serum potassium 7.2 mEq/L, peaked T waves, widened QRS complex, and muscle weakness.", protocol: "Continuous Cardiac Monitoring", drug: "Calcium Gluconate 10%", dose: "10 mL (1g) IV over 5-10 mins" },
+            { title: "Status Epilepticus", BP: "140/90 mmHg", HR: "130 bpm", SpO2: "90%", Temp: "38.0 °C", presentation: "Continuous generalized tonic-clonic seizure activity lasting longer than 5 minutes without recovery of consciousness.", protocol: "Airway Protection & Fall Safety", drug: "Lorazepam", dose: "4 mg IV slow push over 2 mins" },
+            { title: "Thyroid Storm", BP: "160/75 mmHg", HR: "165 bpm", SpO2: "96%", Temp: "40.2 °C", presentation: "Extreme agitation, delirium, marked sinus tachycardia, vomiting, and high fever in a patient with Graves' disease.", protocol: "Cooling Measures & Beta-Blockade", drug: "Propylthiouracil (PTU)", dose: "200 mg PO/NG every 4 hours" },
+            { title: "Acute Pancreatitis", BP: "100/65 mmHg", HR: "112 bpm", SpO2: "95%", Temp: "38.3 °C", presentation: "Severe epigastric pain radiating to the back, guarding, elevated serum lipase 5x upper limit, Cullen sign positive.", protocol: "Aggressive IV Hydration & NPO Status", drug: "Morphine Sulfate", dose: "2 - 4 mg IV every 2-4 hours PRN" },
+            { title: "Preeclampsia with Severe Features", BP: "175/115 mmHg", HR: "88 bpm", SpO2: "97%", Temp: "36.8 °C", presentation: "34 weeks gestation, persistent frontal headache, epigastric pain, hyperreflexia, and 3+ proteinuria.", protocol: "Seizure Prophylaxis & Fetal Monitoring", drug: "Magnesium Sulfate", dose: "4g IV Loading Dose over 15 mins" },
+            { title: "Ectopic Pregnancy Rupture", BP: "80/45 mmHg", HR: "138 bpm", SpO2: "93%", Temp: "36.2 °C", presentation: "Sudden severe lower quadrant pelvic pain, vaginal spotting, shoulder tip pain, positive hCG, and peritoneal signs.", protocol: "Large-Bore IV Access x2 & OR Preparation", drug: "Crystalloid Fluid Bolus", dose: "1000 mL 0.9% NS Rapid Infusion" },
+            { title: "Pediatric Croup (Laryngotracheobronchitis)", BP: "92/58 mmHg", HR: "140 bpm", SpO2: "92%", Temp: "38.2 °C", presentation: "2-year-old presenting with characteristic barking cough, inspiratory stridor at rest, and sternal retractions.", protocol: "Keep Child Calm & Minimal Handling", drug: "Racemic Epinephrine", dose: "0.5 mL 2.25% Nebulized" },
+            { title: "Heat Stroke", BP: "90/50 mmHg", HR: "150 bpm", SpO2: "94%", Temp: "41.1 °C", presentation: "Hot, dry skin, anhidrosis, confusion, ataxia, and core body temperature exceeding 40.5 °C following exertion.", protocol: "Rapid Cold-Water Immersion Cooling", drug: "Normal Saline 0.9% (Cooled)", dose: "500 mL IV Bolus" },
+            { title: "Acute Angle-Closure Glaucoma", BP: "145/88 mmHg", HR: "84 bpm", SpO2: "98%", Temp: "36.5 °C", presentation: "Sudden severe ocular pain, cloudy cornea, fixed mid-dilated pupil, rainbow halos around lights, and severe nausea.", protocol: "Urgent Ophthalmology Consultation", drug: "Timolol 0.5% Ophthalmic", dose: "1 Drop Affected Eye" },
+            { title: "Carbon Monoxide Poisoning", BP: "120/75 mmHg", HR: "105 bpm", SpO2: "100%", Temp: "36.7 °C", presentation: "Cherry-red skin tint, headache, dizziness, nausea after exposure to an unvented indoor heater. SpO2 artificially normal.", protocol: "100% Oxygen via Non-Rebreather", drug: "Hyperbaric Oxygen Therapy", dose: "2.8 ATA Protocol" },
+            { title: "Upper Gastrointestinal Bleed", BP: "85/50 mmHg", HR: "130 bpm", SpO2: "94%", Temp: "36.4 °C", presentation: "Profuse hematemesis, melena, orthostatic dizziness, cold clammy extremities, and hemoglobin of 6.2 g/dL.", protocol: "Type & Crossmatch 4 Units PRBCs", drug: "Octreotide Acetate", dose: "50 mcg IV Bolus then 50 mcg/hr" },
+            { title: "Adrenal Crisis (Addisonian Crisis)", BP: "75/40 mmHg", HR: "125 bpm", SpO2: "95%", Temp: "35.9 °C", presentation: "Profound hyponatremia, hyperkalemia, severe hypoglycemia, intractable vomiting, and vasopressor-refractory hypotension.", protocol: "Dextrose & Saline Resuscitation", drug: "Hydrocortisone Sodium Succinate", dose: "100 mg IV Rapid Push" },
+            { title: "Cardiac Tamponade", BP: "82/60 mmHg", HR: "136 bpm", SpO2: "91%", Temp: "36.7 °C", presentation: "Beck's triad present: muffled heart sounds, jugular venous distension, and hypotension with pulsus paradoxus.", protocol: "Bedside Echocardiogram", drug: "Pericardiocentesis Assistance", dose: "Subxiphoid Emergency Needle Prep" },
+            { title: "Compartment Syndrome", BP: "130/80 mmHg", HR: "96 bpm", SpO2: "98%", Temp: "36.8 °C", presentation: "Severe pain out of proportion to injury in lower leg following tibia fracture, pain on passive stretch, wooden feel.", protocol: "Remove All Restrictive Casts/Bandages", drug: "Analgesic Protocol (Fentanyl)", dose: "50 mcg IV Push" },
+            { title: "Pulmonary Embolism", BP: "92/58 mmHg", HR: "132 bpm", SpO2: "86%", Temp: "37.1 °C", presentation: "Sudden onset pleuritic chest pain, dyspnea, hemoptysis, and right ventricular strain pattern on ECG following DVT.", protocol: "High-Flow Oxygen & Bed Rest", drug: "Unfractionated Heparin", dose: "80 units/kg IV Bolus" },
+            { title: "Meningococcal Meningitis", BP: "98/62 mmHg", HR: "122 bpm", SpO2: "95%", Temp: "39.8 °C", presentation: "Nuchal rigidity, positive Kernig/Brudzinski signs, petechial rash on trunk, and extreme photophobia.", protocol: "Immediate Droplet Isolation", drug: "Ceftriaxone", dose: "2g IV every 12 hours" },
+            { title: "Myasthenic Crisis", BP: "125/78 mmHg", HR: "110 bpm", SpO2: "85%", Temp: "37.0 °C", presentation: "Severe diaphragmatic weakness, shallow respirations, dysphagia, and inability to clear secretions.", protocol: "Endotracheal Intubation Readiness", drug: "Pyridostigmine", dose: "60 mg PO / Slow IV Equivalent" },
+            { title: "Severe Hypoglycemia", BP: "115/70 mmHg", HR: "118 bpm", SpO2: "97%", Temp: "36.1 °C", presentation: "Diaphoretic, confused, combative patient with point-of-care capillary glucose reading of 28 mg/dL.", protocol: "Maintain Patent Airway", drug: "Dextrose 50% (D50W)", dose: "50 mL (25g) IV Push" },
+            { title: "Acute Colonic Pseudo-Obstruction", BP: "118/74 mmHg", HR: "94 bpm", SpO2: "96%", Temp: "37.3 °C", presentation: "Massive abdominal distension, tympanic percussion, cecal diameter 11 cm on X-ray without mechanical blockage.", protocol: "Bowel Rest & Nasogastric Decompression", drug: "Neostigmine", dose: "2 mg IV slow push over 5 mins" },
+            { title: "Serotonin Syndrome", BP: "170/100 mmHg", HR: "140 bpm", SpO2: "96%", Temp: "39.2 °C", presentation: "Inducible clonus, hyperreflexia, tremor, diaphoresis, agitation in a patient taking SSRI and Tramadol.", protocol: "Discontinue All Serotonergic Agents", drug: "Cyproheptadine", dose: "12 mg PO Loading Dose" },
+            { title: "Neuroleptic Malignant Syndrome", BP: "180/105 mmHg", HR: "126 bpm", SpO2: "93%", Temp: "40.5 °C", presentation: "'Lead-pipe' muscle rigidity, autonomic instability, altered consciousness following Haloperidol administration.", protocol: "Aggressive Supportive Cooling", drug: "Dantrolene Sodium", dose: "2.5 mg/kg IV Rapid Push" },
+            { title: "Organophosphate Insecticide Toxicity", BP: "85/50 mmHg", HR: "42 bpm", SpO2: "83%", Temp: "36.0 °C", presentation: "Profuse salivation, lacrimation, urination, defecation, bronchorrhea, extreme bradycardia (SLUDGE syndrome).", protocol: "Decontamination & Airway Suctioning", drug: "Atropine Sulfate", dose: "2 mg IV every 5 mins until secretions dry" },
+            { title: "Spinal Shock", BP: "72/40 mmHg", HR: "48 bpm", SpO2: "94%", Temp: "35.5 °C", presentation: "Flaccid paralysis, loss of reflexes, warm dry skin, and bradycardia following C6 vertebral fracture.", protocol: "Spine Immobilization & MAP > 85", drug: "Phenylephrine", dose: "100 mcg/min IV Titrated" },
+            { title: "Acute Limb Ischemia", BP: "135/82 mmHg", HR: "88 bpm", SpO2: "98%", Temp: "36.4 °C", presentation: "The 6 Ps present in right lower extremity: Pain, Pallor, Pulselessness, Paresthesia, Paralysis, Poikilothermia.", protocol: "Keep Limb Dependent & Vascular Consult", drug: "Heparin Sodium", dose: "5000 units IV Bolus" },
+            { title: "Spontaneous Bacterial Peritonitis", BP: "102/64 mmHg", HR: "108 bpm", SpO2: "95%", Temp: "38.6 °C", presentation: "Cirrhotic patient with ascites presenting with abdominal pain, rebound tenderness, and PMN count > 250/mm3.", protocol: "Diagnostic Paracentesis", drug: "Cefotaxime", dose: "2g IV every 8 hours" },
+            { title: "Symptomatic Bradycardia", BP: "80/48 mmHg", HR: "34 bpm", SpO2: "92%", Temp: "36.5 °C", presentation: "Dizziness, chest pressure, altered alertness with Mobitz Type II second-degree AV block on telemetry.", protocol: "Transcutaneous Pacing Setup", drug: "Atropine Sulfate", dose: "1 mg IV Bolus (Max 3 mg)" },
+            { title: "Ventricular Tachycardia (Pulse Present)", BP: "90/55 mmHg", HR: "180 bpm", SpO2: "91%", Temp: "36.7 °C", presentation: "Monomorphic wide-complex tachycardia with palpable radial pulse, faintness, and lightheadedness.", protocol: "Synchronized Cardioversion Preparation", drug: "Amiodarone HCl", dose: "150 mg IV over 10 mins" },
+            { title: "Ventricular Fibrillation", BP: "0/0 mmHg", HR: "0 bpm", SpO2: "0%", Temp: "36.0 °C", presentation: "Unresponsive, pulseless, apneic patient with chaotic, irregular ECG waveform without identifiable P-QRS-T.", protocol: "Immediate CPR & Defibrillation", drug: "Epinephrine 1:10,000", dose: "1 mg IV/IO every 3-5 mins" },
+            { title: "Autonomic Dysreflexia", BP: "210/115 mmHg", HR: "44 bpm", SpO2: "97%", Temp: "36.8 °C", presentation: "Pounding headache, profuse sweating above T6 lesion, goosebumps below lesion caused by full bladder.", protocol: "Elevate Head 90° & Check Urinary Catheter", drug: "Nifedipine", dose: "10 mg PO Immediate Release" },
+            { title: "Metabolic Acidosis (Lactic)", BP: "90/58 mmHg", HR: "116 bpm", SpO2: "95%", Temp: "37.5 °C", presentation: "Arterial pH 7.18, HCO3 11 mEq/L, Anion gap 22, Kussmaul respirations secondary to tissue hypoperfusion.", protocol: "Treat Underlying Etiology", drug: "Sodium Bicarbonate 8.4%", dose: "50 mEq IV slow push over 5 mins" },
+            { title: "Severe Hypercalcemia Crisis", BP: "110/72 mmHg", HR: "62 bpm", SpO2: "96%", Temp: "36.9 °C", presentation: "Serum calcium 14.8 mg/dL, short QT interval, confusion, polyuria, constipation, and muscle weakness.", protocol: "Aggressive Isotonic Saline Expansion", drug: "Zoledronic Acid", dose: "4 mg IV over 15 mins" },
+            { title: "Heat Exhaustion", BP: "105/68 mmHg", HR: "112 bpm", SpO2: "98%", Temp: "38.8 °C", presentation: "Profuse sweating, fatigue, faintness, headache, intact neurological state following sun exposure.", protocol: "Move to Cool Environment & Oral Fluids", drug: "Oral Rehydration Salts (ORS)", dose: "1 Liter over 1 hour" },
+            { title: "Inhalational Burn Injury", BP: "128/76 mmHg", HR: "118 bpm", SpO2: "91%", Temp: "37.0 °C", presentation: "Soot around nares, singed nasal hairs, hoarseness, carbonaceous sputum following house fire.", protocol: "Early Elective Endotracheal Intubation", drug: "Nebulized N-Acetylcysteine", dose: "3 mL 20% Solution Nebulized" },
+            { title: "Methemoglobinemia", BP: "118/72 mmHg", HR: "104 bpm", SpO2: "85%", Temp: "36.6 °C", presentation: "Chocolate-brown blood coloration, central cyanosis refractory to oxygen following Benzocaine spray.", protocol: "Arterial Blood Gas Co-Oximetry", drug: "Methylene Blue 1%", dose: "1 - 2 mg/kg IV over 5 mins" },
+            { title: "Pediatric Febrile Seizure", BP: "90/56 mmHg", HR: "135 bpm", SpO2: "96%", Temp: "39.6 °C", presentation: "18-month-old with brief 2-minute generalized tonic-clonic episode coinciding with rapid fever spike.", protocol: "Antipyretic Administration & Airway Patrol", drug: "Acetaminophen", dose: "15 mg/kg Rectal/PO" },
+            { title: "Severe Frostbite", BP: "122/78 mmHg", HR: "74 bpm", SpO2: "97%", Temp: "35.2 °C", presentation: "Waxy white/cyanotic non-blanching tissue on hands, hard sensation, loss of feeling after extreme cold exposure.", protocol: "Rapid Re-warming in 37-39°C Water Bath", drug: "Ibuprofen", dose: "400 mg PO every 12 hours" },
+            { title: "Decompression Sickness", BP: "108/68 mmHg", HR: "92 bpm", SpO2: "94%", Temp: "36.4 °C", presentation: "'The Bends': severe joint pain, cutis marmorata, paresthesia 2 hours post scuba diving ascent.", protocol: "100% High-Flow Normobaric Oxygen", drug: "Hyperbaric Recompression", dose: "US Navy Table 6 Protocol" },
+            { title: "Acute Salicylate Toxicity", BP: "120/70 mmHg", HR: "110 bpm", SpO2: "96%", Temp: "38.5 °C", presentation: "Tinnitus, hyperventilation, mixed respiratory alkalosis and metabolic acidosis following Aspirin overdose.", protocol: "Urine Alkalinization", drug: "Sodium Bicarbonate Infusion", dose: "100-150 mEq in 1L D5W at 200mL/hr" },
+            { title: "Hepatic Encephalopathy", BP: "112/68 mmHg", HR: "86 bpm", SpO2: "95%", Temp: "37.1 °C", presentation: "Asterixis (flapping tremor), elevated serum ammonia, somnolence, confusion in a end-stage liver disease patient.", protocol: "Aspiration Prevention & Safety Precautions", drug: "Lactulose", dose: "30 mL PO every 2 hours until 2-3 soft stools" },
+            { title: "Aortic Dissection (Type A)", BP: "195/110 mmHg", HR: "115 bpm", SpO2: "93%", Temp: "36.7 °C", presentation: "Sudden tearing chest pain radiating to back between shoulder blades, 30 mmHg BP differential between arms.", protocol: "Immediate Cardiothoracic Surgery Consult", drug: "Esmolol IV Infusion", dose: "500 mcg/kg Loading then 50 mcg/kg/min" }
+        ];
 
-        let nodes = generateNodes();
+        let nodes = [];
         let currentNodeId = 0;
         let score = 0;
         let clearedCount = 0;
         let integrity = 100;
 
-        // INITIALIZE APP ON LOAD
+        // INITIALIZE APPLICATION
         document.addEventListener('DOMContentLoaded', () => {
+            initNodes();
             renderGrid();
             loadNode(0);
         });
+
+        function initNodes() {
+            nodes = caseDatabase.map((item, index) => {
+                return {
+                    id: index,
+                    code: `NODE #${String(index + 1).padStart(2, '0')}`,
+                    title: item.title,
+                    status: index === 0 ? 'active' : 'locked',
+                    presentation: item.presentation,
+                    vitals: {
+                        BP: item.BP,
+                        HR: item.HR,
+                        SpO2: item.SpO2,
+                        Temp: item.Temp
+                    },
+                    protocols: [
+                        { id: 'p1', label: item.protocol, correct: true },
+                        { id: 'p2', label: 'Standard Supportive Care & Vitals Observation', correct: false },
+                        { id: 'p3', label: 'Immediate Trendelenburg Position & Fluid Restriction', correct: false }
+                    ].sort(() => Math.random() - 0.5),
+                    medications: [
+                        { id: 'm1', label: item.drug, correct: true },
+                        { id: 'm2', label: 'Diphenhydramine HCl', correct: false },
+                        { id: 'm3', label: 'Dexamethasone Sodium Phosphate', correct: false }
+                    ].sort(() => Math.random() - 0.5),
+                    dosages: [
+                        { id: 'd1', label: item.dose, correct: true },
+                        { id: 'd2', label: '10 mg IV Push Single Dose', correct: false },
+                        { id: 'd3', label: '250 mg IV Infusion over 1 hour', correct: false }
+                    ].sort(() => Math.random() - 0.5)
+                };
+            });
+        }
 
         // RENDER TACTICAL GRID
         function renderGrid() {
@@ -275,13 +326,13 @@
 
             nodes.forEach((node, index) => {
                 const btn = document.createElement('button');
-                btn.className = `node-btn p-2 rounded-lg border text-center font-mono flex flex-col items-center justify-center h-14 ${getNodeStatusClass(node.status)}`;
+                btn.className = `node-btn p-1.5 rounded-lg border text-center font-mono flex flex-col items-center justify-center h-14 ${getNodeStatusClass(node.status)}`;
                 btn.onclick = () => selectNode(index);
                 btn.disabled = node.status === 'locked';
 
                 btn.innerHTML = `
-                    <span class="text-[10px] opacity-75">${String(index + 1).padStart(2, '0')}</span>
-                    <span class="text-xs font-bold">${node.status === 'cleared' ? '✓' : node.status === 'failed' ? '✗' : 'SECTOR'}</span>
+                    <span class="text-[9px] opacity-75">${String(index + 1).padStart(2, '0')}</span>
+                    <span class="text-[10px] font-bold truncate w-full px-1">${node.status === 'cleared' ? '✓ CLEARED' : node.status === 'failed' ? '✗ FAILED' : node.title.split(' ')[0]}</span>
                 `;
                 grid.appendChild(btn);
             });
@@ -301,13 +352,6 @@
         // SELECT AND LOAD NODE
         function selectNode(index) {
             if (nodes[index].status === 'locked') return;
-            
-            // Set previously active nodes back to active/cleared/failed
-            nodes.forEach(n => {
-                if (n.status === 'active' && n.id !== index) {
-                    n.status = 'active';
-                }
-            });
 
             currentNodeId = index;
             if (nodes[index].status !== 'cleared' && nodes[index].status !== 'failed') {
@@ -322,8 +366,8 @@
         function loadNode(index) {
             const node = nodes[index];
 
-            // Display Info
-            document.getElementById('node-title-display').innerText = `${node.code} — ${node.title}`;
+            document.getElementById('node-code-display').innerText = node.code;
+            document.getElementById('node-title-display').innerText = node.title;
             document.getElementById('node-status-badge').innerText = node.status.toUpperCase();
             document.getElementById('clinical-presentation').innerText = node.presentation;
 
@@ -399,14 +443,14 @@
                 }
 
                 feedback.className = 'p-3 rounded-lg mb-3 text-xs font-mono bg-emerald-500/10 border border-emerald-500/40 text-emerald-300';
-                feedback.innerText = 'SUCCESS: Matrix Triangulation Verified. Sector Stabilized.';
+                feedback.innerText = `SUCCESS: Protocol sequence verified for ${currentNode.title}. Case stabilized.`;
             } else {
                 // FAILURE
                 currentNode.status = 'failed';
                 integrity = Math.max(0, integrity - 10);
 
                 feedback.className = 'p-3 rounded-lg mb-3 text-xs font-mono bg-rose-500/10 border border-rose-500/40 text-rose-300';
-                feedback.innerText = 'CRITICAL FAILURE: Protocol Sequence Mismatch. Telemetry Compromised.';
+                feedback.innerText = `CRITICAL FAILURE: Incorrect clinical management for ${currentNode.title}. Patient compromised.`;
             }
 
             feedback.classList.remove('hidden');
